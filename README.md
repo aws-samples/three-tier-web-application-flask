@@ -22,7 +22,7 @@ This workshop is intented to be completed in 3 hours.
 
 ## Architecture
 </br>
-![Architecture Diagram](images/Architecture.png)
+![ArchitectureDiagram](images/Architecture.png)
 
 ## Instructions
 </br>
