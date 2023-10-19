@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+
+<table class="table table-dark text-light table-hover border-light bg-secondary bg-gradient">
+    <thead>
+        <tr>
+            <th class="text-center">Task</th>
+            <th class="text-center" colspan="2">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for todo_id in todos %}
+            <tr>
+                <td class="w-50 align-middle text-center">{{todos[todo_id]}}</td>
+                <td class="w-25 align-middle text-end">
+                    <form action="/api/complete/{{todo_id}}" method="POST">
+                        <div class="form-group">
+                        <button class="btn btn-success" type="submit"><i class="bi bi-check"></i></button>
+                        </div>
+                    </form>
+                </td>
+                <td class="w-25 align-middle text-start">
+                    <button data-bs-toggle="modal" data-bs-target="#modaledit{{todo_id}}" class="btn btn-warning"><i class="bi bi-pencil"></i></button>
+                </td>
+            </tr>
+            <div id="modaledit{{todo_id}}" class="modal fade" role="dialog">
+                <div class="modal-dialog">
+                   <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Update Task</h4>
+                        </div>
+                        <div class="modal-body">
+
+                            <form action="/api/update" method="POST">
+                                <div class="form-group">
+                                    <label>Task:</label>
+                                    <input type="hidden"  name="task_id" value="{{todo_id}}">
+                                    <input type="text" class="form-control" name="task" value="{{todos[todo_id]}}" >
+                                </div>
+
+                                <div class="form-group">
+                                <button class="btn btn-primary mt-4" type="submit">Update Book</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

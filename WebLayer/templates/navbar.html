@@ -1,0 +1,36 @@
+<nav class="navbar navbar-dark bg-dark bg-gradient justify-content-between">
+   <a class="navbar-brand" href="#">
+   <h4>TODO Application</h4>
+   </a>
+   <button id="create_button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#insert_modal"><i class="bi bi-plus"></i></button> 
+</nav>
+   
+
+<div id="insert_modal" class="modal fade" role="dialog">
+   <div class="modal-dialog">
+      <div class="modal-content">
+         <div class="modal-header">
+            <h4 class="modal-title">Add Book</h4>
+         </div>
+         <div class="modal-body">
+
+            <form action="/api/create" method="POST">
+
+
+               <div class="form-group">
+                  <label>Task:</label>
+                  <input type="text" class="form-control" name="task" required="1">
+               </div>
+
+               <div class="form-group">
+                  <button class="btn btn-primary mt-4" type="submit">Add Task</button>
+               </div>
+            </form>
+         </div>
+         <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+         </div>
+      </div>
+   </div>
+</div>
+   

@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create ALB, ALB security group, target groups, listeners and listener rules"
+Parameters:
+  AppTierAMI:
+    Type: String
+    Description: The AppTierAMI to launch the ASG
+    MinLength: 1
+
+Resources:
+  AppTierTargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: "/health"
+      Port: 4000
+      Protocol: "HTTP"
+      HealthCheckProtocol: "HTTP"
+      HealthCheckTimeoutSeconds: 5
+      UnhealthyThresholdCount: 2
+      TargetType: "instance"
+      Matcher: 
+        HttpCode: "200"
+      HealthyThresholdCount: 5
+      VpcId: !ImportValue VPC
+      Name: "app-tier-target-group"
+      HealthCheckEnabled: true
+      TargetGroupAttributes: 
+        - 
+          Key: "stickiness.enabled"
+          Value: "false"
+        - 
+          Key: "deregistration_delay.timeout_seconds"
+          Value: "300"
+        - 
+          Key: "stickiness.type"
+          Value: "lb_cookie"
+        - 
+          Key: "stickiness.lb_cookie.duration_seconds"
+          Value: "86400"
+        - 
+          Key: "slow_start.duration_seconds"
+          Value: "0"
+        - 
+          Key: "load_balancing.algorithm.type"
+          Value: "round_robin"
+
+  InternalApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      Name: "ALB-internal"
+      Scheme: "internal"
+      Type: "application"
+      Subnets: 
+        - !ImportValue PrivateAppTierSubnet1
+        - !ImportValue PrivateAppTierSubnet2
+      SecurityGroups: 
+        - !ImportValue InternalALBSecurityGroup
+      IpAddressType: "ipv4"
+
+  HTTPListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref InternalApplicationLoadBalancer
+      Port: 80
+      Protocol: "HTTP"
+      DefaultActions: 
+        - 
+          Order: 1
+          TargetGroupArn: !Ref AppTierTargetGroup
+          Type: "forward"
+  
+  AppTierLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties: 
+      LaunchTemplateName: !Sub ${AWS::StackName}-launch-template
+      LaunchTemplateData:
+        ImageId: !Ref AppTierAMI
+        InstanceType: "t2.micro"
+        SecurityGroupIds: 
+          - !ImportValue AppTierSecurityGroup
+        IamInstanceProfile:
+          Arn: !ImportValue RootInstanceProfile
+
+  AppTierASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref AppTierLaunchTemplate
+        Version: !GetAtt AppTierLaunchTemplate.LatestVersionNumber
+      MaxSize: '2'
+      MinSize: '1'
+      DesiredCapacity: '1'
+      Cooldown: '300'
+      VPCZoneIdentifier:
+        - !ImportValue PrivateAppTierSubnet1
+        - !ImportValue PrivateAppTierSubnet2
+      TargetGroupARNs:
+        - !Ref AppTierTargetGroup
+
+
+Outputs:        
+  InternalALB:
+    Description: The created loadbalancer
+    Value: !Ref InternalApplicationLoadBalancer

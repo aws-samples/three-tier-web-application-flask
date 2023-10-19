@@ -1,0 +1,6 @@
+urllib3==1.26.17
+boto3
+Flask
+Flask-SQLAlchemy
+mysql-connector-python
+requests
