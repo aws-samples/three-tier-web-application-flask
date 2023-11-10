@@ -1,15 +1,7 @@
 import boto3
 import requests
 
-def get_instance_region():
-    instance_identity_url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
-    session = requests.Session()
-    r = requests.get(instance_identity_url)
-    response_json = r.json()
-    region = response_json.get("region")
-    return(region)
-
-client = boto3.client('ssm', get_instance_region())
+client = boto3.client('ssm')
 
 master_username = client.get_parameter(
     Name='master_username',
