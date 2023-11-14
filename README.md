@@ -20,7 +20,7 @@ This workshop is intented to be completed in 3 hours.
 ![Architecture Diagram](https://github.com/aws-samples/three-tier-web-application-flask/blob/main/images/Architecture.png)
 
 ## Instructions
-You can follow the instructions [here]().
+You can follow the instructions [here](https://catalog.us-east-1.prod.workshops.aws/workshops/ca41cbe4-6f9c-4418-a41b-59b05d60eca1/en-US).
 
 ## Clean-Up
 
