@@ -24,7 +24,7 @@ You can follow the instructions [here](https://catalog.us-east-1.prod.workshops.
 
 ## Clean-Up
 
-In order to avoid incurring any cost and as a general best practice, please follow the steps to [clean up]() the resources.
+In order to avoid incurring any cost and as a general best practice, please follow the steps to [clean up](https://catalog.us-east-1.prod.workshops.aws/workshops/ca41cbe4-6f9c-4418-a41b-59b05d60eca1/en-US/clean-up) the resources.
 
 ## Security
 
@@ -32,4 +32,4 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 
 ## License
 
-This library is licensed under the MIT-0 License. See the LICENSE file.
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
