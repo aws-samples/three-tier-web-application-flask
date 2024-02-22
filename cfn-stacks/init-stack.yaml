@@ -564,9 +564,3 @@ Outputs:
     Value: !GetAtt DatabaseSecurityGroup.GroupId
     Export:
       Name: DatabaseSecurityGroup
-  RootInstanceProfile:
-    Condition: IsWS
-    Description: A reference to the created RootInstanceProfile
-    Value: !GetAtt RootInstanceProfile.Arn
-    Export:
-      Name: RootInstanceProfile
