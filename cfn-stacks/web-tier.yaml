@@ -79,7 +79,7 @@ Resources:
         SecurityGroupIds: 
           - !ImportValue WebTierSecurityGroup
         IamInstanceProfile:
-          Arn: !ImportValue RootInstanceProfile
+          Arn: !Sub "arn:aws:iam::${Account}:instance-profile/webapp/ec2-userprofile-${AWS::AccountId}"
 
   WebTierASG:
     Type: AWS::AutoScaling::AutoScalingGroup
