@@ -5,6 +5,14 @@ Description:  This template deploys a VPC, with two public and six private subne
   and EC2 service role.
 
 Parameters:
+  IsWorkshopStudioEnv:
+    Type: String
+    Default: "no"
+    AllowedValues:
+      - "no"
+      - "yes"
+    Description: Whether this stack is being deployed in a Workshop Studio environment or not. If not sure, leave as default of "no".
+  
   EnvironmentName:
     Description: An environment name that is prefixed to resource names
     Type: String
@@ -59,6 +67,10 @@ Parameters:
     Description: Please enter the name of the S3 Bucket with Application Code
     Type: String
 
+Conditions:
+  IsWS: !Equals 
+    - !Ref IsWorkshopStudioEnv
+    - "no"
 Resources:
   
   VPC:
@@ -445,6 +457,7 @@ Resources:
   
   UserManagedEC2ServiceRole:
     Type: 'AWS::IAM::Role'
+    Condition: IsWS
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -475,6 +488,7 @@ Resources:
           Value: "UserEC2ServiceRole"
   RootInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
+    Condition: IsWS
     Properties:
       Path: "/webapp/ec2-userprofile"
       Roles:
@@ -551,6 +565,7 @@ Outputs:
     Export:
       Name: DatabaseSecurityGroup
   RootInstanceProfile:
+    Condition: IsWS
     Description: A reference to the created RootInstanceProfile
     Value: !GetAtt RootInstanceProfile.Arn
     Export:
