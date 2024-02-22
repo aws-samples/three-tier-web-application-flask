@@ -468,7 +468,7 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-      Path: "/webapp/ec2servicerole"
+      Path: "/webapp/ec2servicerole-${AWS::AccountId}"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonSSMFullAccess
@@ -490,7 +490,7 @@ Resources:
     Type: 'AWS::IAM::InstanceProfile'
     Condition: IsWS
     Properties:
-      Path: "/webapp/ec2-userprofile"
+      Path: !Sub "/webapp/ec2userprofile-${AWS::AccountId}"
       Roles:
         - !Ref UserManagedEC2ServiceRole
 Outputs:
