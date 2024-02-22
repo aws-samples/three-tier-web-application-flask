@@ -476,7 +476,7 @@ Resources:
   RootInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
-      Path: /
+      Path: "/webapp/ec2-userprofile"
       Roles:
         - !Ref UserManagedEC2ServiceRole
 Outputs:
