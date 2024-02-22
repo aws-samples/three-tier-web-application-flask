@@ -442,20 +442,6 @@ Resources:
       Tags:
         - Key: Name
           Value: "db-sg"
-  S3ReadPolicy:
-    Type: "AWS::IAM::ManagedPolicy"
-    Properties:
-      Description: This policy gives get and list object action to EC2 instance
-      Path: /
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action: s3:GetObject
-            Effect: Allow
-            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
-          - Action: s3:ListBucket
-            Effect: Allow
-            Resource: !Sub "arn:aws:s3:::${S3Bucket}"
   
   UserManagedEC2ServiceRole:
     Type: 'AWS::IAM::Role'
@@ -469,11 +455,21 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-      Path: /
+      Path: "/webapp/ec2servicerole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         - arn:aws:iam::aws:policy/AmazonSSMFullAccess
-        - !GetAtt S3ReadPolicy.PolicyArn
+      Policies:
+        - PolicyName: 'ListGetBucket'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub "arn:aws:s3:::${S3Bucket}/*"
       Tags:
         - Key: Name
           Value: "UserEC2ServiceRole"
@@ -559,45 +555,3 @@ Outputs:
     Value: !GetAtt RootInstanceProfile.Arn
     Export:
       Name: RootInstanceProfile
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
