@@ -5,11 +5,6 @@ Description:  This template deploys a VPC, with two public and six private subne
   and EC2 service role.
 
 Parameters:
-  EnvironmentName:
-    Description: An environment name that is prefixed to resource names
-    Type: String
-    Default: three-tier-application
-
   VpcCIDR:
     Description: Please enter the IP range (CIDR notation) for this VPC
     Type: String
@@ -55,12 +50,7 @@ Parameters:
     Type: String
     Default: 10.0.7.0/24
   
-  S3Bucket:
-    Description: Please enter the name of the S3 Bucket with Application Code
-    Type: String
-
-Resources:
-  
+Resources:  
   VPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -69,14 +59,14 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Ref EnvironmentName
+          Value: !Sub '${AWS::StackName}'
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
         - Key: Name
-          Value: !Ref EnvironmentName
+          Value: !Sub '${AWS::StackName}'
 
   InternetGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -442,47 +432,7 @@ Resources:
       Tags:
         - Key: Name
           Value: "db-sg"
-  S3ReadPolicy:
-    Type: "AWS::IAM::ManagedPolicy"
-    Properties:
-      Description: This policy gives get and list object action to EC2 instance
-      Path: /
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Action: s3:GetObject
-            Effect: Allow
-            Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
-          - Action: s3:ListBucket
-            Effect: Allow
-            Resource: !Sub "arn:aws:s3:::${S3Bucket}"
-  
-  UserManagedEC2ServiceRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: /
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
-        - !GetAtt S3ReadPolicy.PolicyArn
-      Tags:
-        - Key: Name
-          Value: "UserEC2ServiceRole"
-  RootInstanceProfile:
-    Type: 'AWS::IAM::InstanceProfile'
-    Properties:
-      Path: /
-      Roles:
-        - !Ref UserManagedEC2ServiceRole
+
 Outputs:
   VPC:
     Description: A reference to the created VPC
@@ -554,50 +504,3 @@ Outputs:
     Value: !GetAtt DatabaseSecurityGroup.GroupId
     Export:
       Name: DatabaseSecurityGroup
-  RootInstanceProfile:
-    Description: A reference to the created RootInstanceProfile
-    Value: !GetAtt RootInstanceProfile.Arn
-    Export:
-      Name: RootInstanceProfile
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-
-
-
-
-
-
-
-
-
-
