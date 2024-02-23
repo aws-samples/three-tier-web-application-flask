@@ -79,7 +79,7 @@ Resources:
         SecurityGroupIds: 
           - !ImportValue AppTierSecurityGroup
         IamInstanceProfile:
-          Arn: !Sub "arn:aws:iam::${Account}:instance-profile/webapp/ec2userprofile-${AWS::AccountId}"
+          Arn: !Sub "arn:aws:iam::${AWS::AccountId}:instance-profile/webapp/ec2userprofile-${AWS::AccountId}/flaskapp"
   AppTierASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:

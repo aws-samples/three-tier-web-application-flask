@@ -1,0 +1,213 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Initialize workshop'
+Resources:
+  CodeS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'codes3bucket-${AWS::AccountId}'
+  
+  LogsPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName:  'StreamlitLogsPolicy'
+      Path: /
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: '*'
+  
+  InitBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: 'StreamlitInitBuildRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'codebuild.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !GetAtt LogsPolicy.PolicyArn
+      Policies:
+        - PolicyName: 'ListGetBucket'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:AbortMultipartUpload"
+                  - "s3:DeleteObject"
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:ListMultipartUploadParts"
+                Resource:
+                  - !Sub "arn:aws:s3:::${CodeS3Bucket}/*"
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                  - "s3:GetBucketLocation"
+                  - "s3:ListBucketMultipartUploads"
+                  - "s3:ListBucketVersions"
+                Resource:
+                  - !Sub "arn:aws:s3:::${CodeS3Bucket}"
+
+  InitCodebuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: 'InitCodebuild'
+      Source:
+        Type: GITHUB
+        Location: https://github.com/aws-samples/three-tier-web-application-flask.git
+        BuildSpec: 
+          !Sub
+            - |
+              version: 0.2
+              phases:
+                pre_build:
+                  commands:
+                    - pip3 install awscli --upgrade --user
+                build:
+                  commands:
+                    - echo Build started on `date`
+                post_build:
+                  commands:
+                    - echo Build completed on `date`
+                    - aws s3 sync . s3://${CodeS3Bucket}
+            - { 
+                CodeS3Bucket: !Ref CodeS3Bucket
+              }
+      Environment:
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        ComputeType: BUILD_GENERAL1_SMALL
+      ServiceRole: !GetAtt InitBuildRole.Arn
+      Artifacts:
+        Type: NO_ARTIFACTS
+
+  UserManagedEC2ServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: !Sub "/webapp/ec2servicerole-${AWS::AccountId}/"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+      Policies:
+        - PolicyName: 'EC2Bucket'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 's3:GetObject'
+                  - 's3:ListBucket'
+                Resource:
+                  - !Sub "arn:aws:s3:::${CodeS3Bucket}/*"
+                  - !Sub "arn:aws:s3:::${CodeS3Bucket}"
+  
+  RootInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: flaskapp
+      Path: !Sub "/webapp/ec2userprofile-${AWS::AccountId}/"
+      Roles:
+        - !Ref UserManagedEC2ServiceRole
+
+  BuildCustomResourceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: 'CustomResourceRole'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: "/"
+      ManagedPolicyArns:
+        - !GetAtt LogsPolicy.PolicyArn
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                Resource:
+                  - '*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                  - s3:DeleteObjectVersion
+                  - s3:ListBucketVersions
+                  - s3:ListObjectsV2
+                Resource:
+                  - !Sub arn:aws:s3:::${CodeS3Bucket}/*
+                  - !Sub arn:aws:s3:::${CodeS3Bucket}
+  
+  BuildCustomResourceFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: 'CustomResourceFnc'
+      Handler: index.handler
+      Role: !GetAtt BuildCustomResourceRole.Arn
+      Timeout: 300
+      Runtime: python3.12
+      Code:
+        ZipFile: !Sub |
+                import boto3
+                from time import sleep
+                import cfnresponse
+
+                codebuild = boto3.client("codebuild")
+
+                def handler(event, context):
+                  try:
+                    request_type = event['RequestType']
+                    if request_type == 'Create':
+                      status = 'STARTING'
+                      
+                      build_id = codebuild.start_build(projectName=event['ResourceProperties']['PROJECT'])['build']['id']
+                      while status not in ['SUCCEEDED', 'FAILED', 'STOPPED', 'FAULT', 'TIMED_OUT']:
+                        status = codebuild.batch_get_builds(ids=[build_id])['builds'][0]['buildStatus']
+                        sleep(15)
+                      if status in ['FAILED', 'STOPPED', 'FAULT', 'TIMED_OUT']:
+                        cfnresponse.send(event, context, cfnresponse.FAILED, {})
+                        return
+                    elif request_type == 'Delete':
+                      bucket = boto3.resource("s3").Bucket(event['ResourceProperties']['CODEBUCKET'])
+                      bucket.object_versions.delete()
+                      bucket.objects.all().delete()
+                  except Exception as ex:
+                    cfnresponse.send(event, context, cfnresponse.FAILED, {})
+                  else:
+                    cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+
+  BuildCustomResource:
+    Type: Custom::BuildCode
+    Properties:
+      ServiceToken: !GetAtt BuildCustomResourceFunction.Arn
+      CODEBUCKET: !Ref CodeS3Bucket
+      PROJECT: !Ref InitCodebuild
